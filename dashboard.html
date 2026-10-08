@@ -356,28 +356,28 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
       <div id="page-dashboard" class="page active">
         <div class="page-header">
           <div class="page-title">COMMAND CENTER</div>
-          <div class="page-sub">OCT 08, 2026 — REAL-TIME LEAD MONITORING</div>
+          <div class="page-sub" id="dash-date-sub">— REAL-TIME LEAD MONITORING</div>
         </div>
         <div class="kpi-grid">
           <div class="kpi-card accent">
             <div class="kpi-label">Leads This Month</div>
-            <div class="kpi-value">2,4<span class="kpi-accent">17</span></div>
-            <div class="kpi-change">↑ 34% vs last month</div>
+            <div class="kpi-value" id="kpi-monthly">—</div>
+            <div class="kpi-change" id="kpi-monthly-sub">Loading...</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">New Today</div>
-            <div class="kpi-value" id="kpi-today">12</div>
-            <div class="kpi-change">↑ 3 in last hour</div>
+            <div class="kpi-value" id="kpi-today">—</div>
+            <div class="kpi-change" id="kpi-today-sub">Loading...</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Avg Intent Score</div>
-            <div class="kpi-value">86<span class="kpi-accent">%</span></div>
-            <div class="kpi-change">↑ 4pts vs last week</div>
+            <div class="kpi-value" id="kpi-intent">—</div>
+            <div class="kpi-change" id="kpi-intent-sub">Loading...</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Pipeline Value</div>
-            <div class="kpi-value"><span style="font-size:28px;color:var(--amber)">$</span>148k</div>
-            <div class="kpi-change">↑ 18% vs last month</div>
+            <div class="kpi-value" id="kpi-pipeline">—</div>
+            <div class="kpi-change" id="kpi-pipeline-sub">Loading...</div>
           </div>
         </div>
         <div class="dash-row dash-row-2" style="margin-bottom:1px;">
@@ -657,41 +657,41 @@ async function initDashboard() {
 
   // KPI cards
   if (stats) {
-    const total = stats.total ?? 0;
-    const today = stats.today ?? stats.newCount ?? 0;
-    const avgIntent = stats.avgIntent ?? 0;
+    const today    = stats.today ?? 0;
+    const avgIntent= stats.avgIntent ?? 0;
     const pipeline = stats.pipeline ?? 0;
-    const monthly = stats.monthly ?? stats.total ?? 0;
+    const monthly  = stats.monthly ?? 0;
+    const newCount = stats.newCount ?? 0;
+    const total    = stats.total ?? 0;
 
     // Leads this month
-    const kpiMonthEl = document.querySelector('.kpi-card.accent .kpi-value');
-    if (kpiMonthEl) {
-      const m = monthly.toLocaleString();
-      // Keep accent span on last 2 digits
-      if (m.length > 2) {
-        kpiMonthEl.innerHTML = m.slice(0,-2) + '<span class="kpi-accent">' + m.slice(-2) + '</span>';
-      } else {
-        kpiMonthEl.textContent = m;
-      }
-    }
+    const monthEl = document.getElementById('kpi-monthly');
+    if (monthEl) monthEl.textContent = monthly.toLocaleString();
+    const monthSub = document.getElementById('kpi-monthly-sub');
+    if (monthSub) monthSub.textContent = total > 0 ? `${total.toLocaleString()} total all time` : 'No leads yet this month';
 
     // New today
-    const kpiTodayEl = document.getElementById('kpi-today');
-    if (kpiTodayEl) kpiTodayEl.textContent = today;
+    const todayEl = document.getElementById('kpi-today');
+    if (todayEl) todayEl.textContent = today;
+    const todaySub = document.getElementById('kpi-today-sub');
+    if (todaySub) todaySub.textContent = newCount > 0 ? `${newCount} unworked` : today > 0 ? 'All worked' : 'None yet today';
 
     // Avg intent
-    const kpiIntentEl = document.querySelectorAll('.kpi-card')[2]?.querySelector('.kpi-value');
-    if (kpiIntentEl) kpiIntentEl.innerHTML = Math.round(avgIntent) + '<span class="kpi-accent">%</span>';
+    const intentEl = document.getElementById('kpi-intent');
+    if (intentEl) intentEl.innerHTML = avgIntent > 0 ? avgIntent + '<span class="kpi-accent">%</span>' : '—';
+    const intentSub = document.getElementById('kpi-intent-sub');
+    if (intentSub) intentSub.textContent = avgIntent >= 85 ? 'High quality leads' : avgIntent > 0 ? 'Avg across all leads' : 'No leads yet';
 
     // Pipeline value
-    const kpiPipelineEl = document.querySelectorAll('.kpi-card')[3]?.querySelector('.kpi-value');
-    if (kpiPipelineEl) {
-      const k = pipeline >= 1000 ? (pipeline/1000).toFixed(0)+'k' : pipeline.toLocaleString();
-      kpiPipelineEl.innerHTML = '<span style="font-size:28px;color:var(--amber)">$</span>' + k;
+    const pipelineEl = document.getElementById('kpi-pipeline');
+    if (pipelineEl) {
+      const k = pipeline >= 1000 ? '$' + (pipeline/1000).toFixed(1) + 'k' : '$' + pipeline.toLocaleString();
+      pipelineEl.textContent = pipeline > 0 ? k : '$0';
     }
+    const pipelineSub = document.getElementById('kpi-pipeline-sub');
+    if (pipelineSub) pipelineSub.textContent = pipeline > 0 ? 'Open + booked leads' : 'No active pipeline yet';
 
-    // Sidebar new-lead badge
-    const newCount = stats.newCount ?? 0;
+    // Sidebar badge
     const badge = document.getElementById('sb-new-count');
     if (badge) badge.textContent = newCount;
   }
@@ -1261,6 +1261,37 @@ document.addEventListener('click', e => {
 
 // ── INIT ──────────────────────────────────────────────────────────
 Chart.defaults.color = '#8A8480';
+
+// Set live date in header
+const dashSub = document.getElementById('dash-date-sub');
+if (dashSub) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month:'short', day:'2-digit', year:'numeric' }).toUpperCase();
+  dashSub.textContent = dateStr + ' — REAL-TIME LEAD MONITORING';
+}
+
+// Auto-refresh KPIs every 30 seconds
+setInterval(async () => {
+  if (state.page === 'dashboard') {
+    const stats = await apiFetch('/leads/stats');
+    if (stats) {
+      const todayEl = document.getElementById('kpi-today');
+      if (todayEl) todayEl.textContent = stats.today ?? 0;
+      const monthEl = document.getElementById('kpi-monthly');
+      if (monthEl) monthEl.textContent = (stats.monthly ?? 0).toLocaleString();
+      const intentEl = document.getElementById('kpi-intent');
+      if (intentEl) intentEl.innerHTML = stats.avgIntent > 0 ? stats.avgIntent + '<span class="kpi-accent">%</span>' : '—';
+      const pipelineEl = document.getElementById('kpi-pipeline');
+      if (pipelineEl) {
+        const p = stats.pipeline ?? 0;
+        pipelineEl.textContent = p >= 1000 ? '$' + (p/1000).toFixed(1) + 'k' : '$' + p.toLocaleString();
+      }
+      const badge = document.getElementById('sb-new-count');
+      if (badge) badge.textContent = stats.newCount ?? 0;
+    }
+  }
+}, 30000);
+
 initDashboard();
 initWebSocket();
 </script>
