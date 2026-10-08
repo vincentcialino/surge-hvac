@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SURGE — HVAC Lead Automation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --amber: #F97316;
+      --amber-dark: #C2571A;
+      --amber-glow: rgba(249,115,22,0.15);
+      --black: #080808;
+      --surface-1: #111111;
+      --surface-2: #191919;
+      --surface-3: #222222;
+      --border: rgba(255,255,255,0.07);
+      --text-primary: #F0EDE8;
+      --text-secondary: #8A8480;
+      --text-muted: #4A4744;
+      --mono: 'IBM Plex Mono', monospace;
+      --display: 'Bebas Neue', sans-serif;
+      --body: 'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--text-primary);
+      font-family: var(--body);
+      font-size: 18px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Blueprint grid background */
+    .blueprint-bg {
+      background-color: var(--black);
+      background-image:
+        linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px),
+        linear-gradient(rgba(249,115,22,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(249,115,22,0.02) 1px, transparent 1px);
+      background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    /* Typography */
+    .display { font-family: var(--display); letter-spacing: 0.02em; line-height: 0.95; }
+    .mono { font-family: var(--mono); }
+    .condensed { font-family: var(--body); }
+
+    /* Amber accent */
+    .accent { color: var(--amber); }
+    .accent-bg { background: var(--amber); }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,8,8,0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: var(--display);
+      font-size: 28px;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+    }
+
+    .logo span { color: var(--amber); }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--amber); }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s, transform 0.15s;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    }
+
+    .btn-primary:hover {
+      background: #FF8C3A;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      text-decoration: none;
+      background: transparent;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    /* Section containers */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* Hero */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-top: 64px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(249,115,22,0.3);
+      background: rgba(249,115,22,0.08);
+      padding: 6px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 32px;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--amber);
+      border-radius: 50%;
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero-title {
+      font-family: var(--display);
+      font-size: clamp(72px, 10vw, 160px);
+      line-height: 0.9;
+      letter-spacing: 0.01em;
+      margin-bottom: 8px;
+    }
+
+    .hero-title .line-2 {
+      -webkit-text-stroke: 1px rgba(240,237,232,0.25);
+      color: transparent;
+    }
+
+    .hero-title .line-3 { color: var(--amber); }
+
+    .hero-sub {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 48px;
+      margin-top: 24px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-bg-text {
+      position: absolute;
+      right: -40px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--display);
+      font-size: clamp(180px, 22vw, 380px);
+      color: rgba(249,115,22,0.025);
+      letter-spacing: 0.05em;
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    /* Diagonal divider */
+    .divider-diagonal {
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      opacity: 0.4;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      background: var(--surface-2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 40px 0;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+
+    .stat-item {
+      padding: 0 40px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-item:last-child { border-right: none; }
+    .stat-item:first-child { padding-left: 0; }
+
+    .stat-number {
+      font-family: var(--display);
+      font-size: clamp(44px, 5vw, 72px);
+      line-height: 1;
+      color: var(--text-primary);
+    }
+
+    .stat-number .stat-accent { color: var(--amber); }
+
+    .stat-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* Section base */
+    section { padding: 120px 0; }
+
+    .section-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-tag::before {
+      content: '';
+      width: 24px; height: 1px;
+      background: var(--amber);
+    }
+
+    .section-title {
+      font-family: var(--display);
+      font-size: clamp(48px, 6vw, 96px);
+      line-height: 0.95;
+      margin-bottom: 24px;
+    }
+
+    /* Problem section */
+    #problem {
+      background: var(--surface-1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .problem-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .problem-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--body);
+      font-size: 18px;
+      color: var(--text-secondary);
+      font-weight: 400;
+      transition: color 0.2s;
+    }
+
+    .problem-item:hover { color: var(--text-primary); }
+
+    .problem-item .icon {
+      width: 32px; height: 32px;
+      border: 1px solid rgba(249,115,22,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--amber);
+      font-size: 14px;
+    }
+
+    .problem-visual {
+      position: relative;
+    }
+
+    .terminal-card {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--amber);
+      padding: 0;
+      clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+    }
+
+    .terminal-header {
+      background: rgba(249,115,22,0.08);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    .terminal-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-left: 8px;
+    }
+
+    .terminal-body {
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .t-line { display: block; }
+    .t-comment { color: var(--text-muted); }
+    .t-key { color: #64B5F6; }
+    .t-val { color: #81C784; }
+    .t-amber { color: var(--amber); }
+    .t-warn { color: #FFB74D; }
+
+    /* How it works */
+    #how {
+      background: var(--black);
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 64px;
+      position: relative;
+    }
+
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 48px;
+      left: calc(16.66% + 16px);
+      right: calc(16.66% + 16px);
+      height: 1px;
+      background: linear-gradient(90deg, var(--amber), rgba(249,115,22,0.3), var(--amber));
+      pointer-events: none;
+    }
+
+    .step-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      padding: 40px 32px;
+      position: relative;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .step-card:hover {
+      border-color: rgba(249,115,22,0.3);
+      background: var(--surface-2);
+    }
+
+    .step-number {
+      font-family: var(--display);
+      font-size: 80px;
+      line-height: 1;
+      color: rgba(249,115,22,0.12);
+      position: absolute;
+      top: 16px;
+      right: 20px;
+    }
+
+    .step-icon {
+      width: 48px; height: 48px;
+      border: 1px solid rgba(249,115,22,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-title {
+      font-family: var(--display);
+      font-size: 32px;
+      margin-bottom: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    .step-body {
+      font-family: var(--body);
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      font-weight: 400;
+    }
+
+    /* Features */
+    #features {
+      background: var(--surface-1);
+    }
+
+    .features-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      margin-bottom: 64px;
+      align-items: end;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .feature-card {
+      background: var(--surface-1);
+      padding: 36px 28px;
+      position: relative;
+      transition: background 0.25s;
+    }
+
+    .feature-card:hover {
+      background: var(--surface-2);
+    }
+
+    .feature-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 0; height: 2px;
+      background: var(--amber);
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .feature-card:hover::after { width: 100%; }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .feature-title {
+      font-family: var(--body);
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .feature-desc {
+      font-family: var(--body);
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      font-weight: 400;
+    }
+
+    /* Testimonials */
+    #testimonials {
+      background: var(--black);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 64px;
+    }
+
+    .testi-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      padding: 36px;
+      position: relative;
+      clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+      transition: border-color 0.25s;
+    }
+
+    .testi-card:hover { border-color: rgba(249,115,22,0.25); }
+
+    .testi-card::before {
+      content: '"';
+      font-family: var(--display);
+      font-size: 80px;
+      color: rgba(249,115,22,0.15);
+      position: absolute;
+      top: 8px; right: 24px;
+      line-height: 1;
+    }
+
+    .testi-stars {
+      display: flex;
+      gap: 3px;
+      margin-bottom: 16px;
+    }
+
+    .star { color: var(--amber); font-size: 14px; }
+
+    .testi-text {
+      font-family: var(--body);
+      font-size: 17px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      font-weight: 400;
+    }
+
+    .testi-author {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .testi-avatar {
+      width: 44px; height: 44px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--amber);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .testi-name {
+      font-family: var(--body);
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .testi-role {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-top: 2px;
+    }
+
+    /* Pricing */
+    #pricing {
+      background: var(--surface-1);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 64px;
+    }
+
+    .price-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 40px 32px;
+      position: relative;
+      transition: border-color 0.25s;
+    }
+
+    .price-card:hover { border-color: rgba(249,115,22,0.2); }
+
+    .price-card.featured {
+      border-color: var(--amber);
+      background: var(--surface-3);
+      z-index: 1;
+    }
+
+    .price-card.featured::before {
+      content: 'MOST POPULAR';
+      position: absolute;
+      top: -1px; left: 32px;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      padding: 3px 12px;
+    }
+
+    .price-tier {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .price-number {
+      font-family: var(--display);
+      font-size: 64px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .price-number sup {
+      font-family: var(--mono);
+      font-size: 22px;
+      vertical-align: super;
+      color: var(--text-secondary);
+    }
+
+    .price-period {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-bottom: 28px;
+    }
+
+    .price-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 28px;
+    }
+
+    .price-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+
+    .price-feature {
+      display: flex;
+      gap: 12px;
+      font-family: var(--body);
+      font-size: 16px;
+      color: var(--text-secondary);
+      align-items: flex-start;
+    }
+
+    .price-feature .check {
+      color: var(--amber);
+      flex-shrink: 0;
+      font-size: 13px;
+      margin-top: 3px;
+    }
+
+    .price-feature.disabled { opacity: 0.35; }
+    .price-feature.disabled .check { color: var(--text-muted); }
+
+    /* CTA section */
+    #cta {
+      padding: 160px 0;
+      background: var(--black);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-bg-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(249,115,22,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-inner {
+      position: relative;
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .cta-title {
+      font-family: var(--display);
+      font-size: clamp(60px, 8vw, 120px);
+      line-height: 0.9;
+      margin-bottom: 24px;
+    }
+
+    .cta-sub {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      margin-bottom: 48px;
+      line-height: 1.7;
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary-lg {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 18px 36px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    }
+
+    .btn-primary-lg:hover {
+      background: #FF8C3A;
+      transform: translateY(-2px);
+    }
+
+    .trust-line {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+
+    .trust-item::before {
+      content: '✓';
+      color: var(--amber);
+      font-size: 12px;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--surface-1);
+      border-top: 1px solid var(--border);
+      padding: 60px 0 32px;
+    }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 60px;
+      margin-bottom: 60px;
+    }
+
+    .footer-brand p {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-top: 12px;
+      max-width: 280px;
+    }
+
+    .footer-col h4 {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-links a {
+      font-family: var(--body);
+      font-size: 16px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--amber); }
+
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-copy {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* Scroll animations */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 2px; background: var(--border); }
+      .stat-item { border-right: none; padding: 24px; background: var(--surface-2); }
+      .problem-grid { grid-template-columns: 1fr; gap: 48px; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .steps-grid::before { display: none; }
+      .features-header { grid-template-columns: 1fr; gap: 24px; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .testimonials-grid { grid-template-columns: 1fr; gap: 16px; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .footer-top { grid-template-columns: 1fr 1fr; gap: 40px; }
+    }
+
+    @media (max-width: 640px) {
+      .container { padding: 0 20px; }
+      .nav-links { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .footer-top { grid-template-columns: 1fr; }
+      .hero-bg-text { display: none; }
+    }
+
+    /* Animated counter */
+    .counter { transition: none; }
+  </style>
+</head>
+<body class="blueprint-bg">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <div class="logo">SURGE<span>.</span></div>
+      <ul class="nav-links">
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#testimonials">Results</a></li>
+      </ul>
+      <div style="display:flex;gap:12px;align-items:center">
+        <a href="#" class="btn-ghost">Log In</a>
+        <a href="#cta" class="btn-primary">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="container" style="position:relative;z-index:1">
+      <div class="hero-badge">Lead Engine — Online &amp; Active</div>
+      <h1 class="hero-title">
+        <span class="display" style="display:block">FILL YOUR</span>
+        <span class="display line-2" style="display:block">PIPELINE</span>
+        <span class="display line-3" style="display:block">ON AUTOPILOT</span>
+      </h1>
+      <p class="hero-sub">
+        SURGE automates lead generation for HVAC contractors.<br/>
+        No agencies. No cold calling. Just qualified homeowners<br/>
+        ready to book — delivered straight to your CRM.
+      </p>
+      <div class="hero-actions">
+        <a href="#cta" class="btn-primary" style="font-size:13px;padding:16px 32px">
+          Start Generating Leads
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7H12M12 7L8 3M12 7L8 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </a>
+        <a href="#how" class="btn-ghost" style="font-size:13px;padding:16px 32px">See How It Works</a>
+      </div>
+      <div style="margin-top:48px;display:flex;gap:32px;align-items:center;flex-wrap:wrap">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:0.1em">TRUSTED BY HVAC BUSINESSES ACROSS</div>
+        <div style="display:flex;gap:24px;align-items:center">
+          <span style="font-family:var(--display);font-size:22px;letter-spacing:0.05em;color:var(--text-muted)">FLORIDA</span>
+          <span style="color:var(--border)">·</span>
+          <span style="font-family:var(--display);font-size:22px;letter-spacing:0.05em;color:var(--text-muted)">TEXAS</span>
+          <span style="color:var(--border)">·</span>
+          <span style="font-family:var(--display);font-size:22px;letter-spacing:0.05em;color:var(--text-muted)">ARIZONA</span>
+          <span style="color:var(--border)">·</span>
+          <span style="font-family:var(--display);font-size:22px;letter-spacing:0.05em;color:var(--text-muted)">GEORGIA</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-bg-text" aria-hidden="true">SURGE</div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-number"><span class="counter" data-target="2400">0</span><span class="stat-accent">+</span></div>
+          <div class="stat-label">Leads Delivered Monthly</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number"><span class="counter" data-target="340">0</span></div>
+          <div class="stat-label">Active HVAC Contractors</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number"><span class="counter" data-target="94">0</span><span class="stat-accent">%</span></div>
+          <div class="stat-label">Lead Contact Rate</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number"><span style="font-size:clamp(32px,3.5vw,52px);color:var(--amber)">$</span><span class="counter" data-target="18">0</span></div>
+          <div class="stat-label">Avg Cost Per Lead</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM -->
+  <section id="problem">
+    <div class="container">
+      <div class="problem-grid">
+        <div>
+          <div class="section-tag fade-up">The Problem</div>
+          <h2 class="section-title fade-up">YOUR PIPELINE<br/>IS <span class="accent">BLEEDING</span><br/>LEADS.</h2>
+          <p style="font-family:var(--mono);font-size:13px;color:var(--text-secondary);line-height:1.8;margin-bottom:40px;max-width:440px" class="fade-up">
+            Every day you wait for the phone to ring, your competitors are running automated campaigns, capturing every homeowner searching for HVAC services in your area.
+          </p>
+          <ul class="problem-list">
+            <li class="problem-item fade-up">
+              <span class="icon">✗</span>
+              Spending $3,000/mo on agencies with zero transparency
+            </li>
+            <li class="problem-item fade-up">
+              <span class="icon">✗</span>
+              Chasing bad leads from Angi, HomeAdvisor, and Thumbtack
+            </li>
+            <li class="problem-item fade-up">
+              <span class="icon">✗</span>
+              Forgetting follow-ups because it's all manual
+            </li>
+            <li class="problem-item fade-up">
+              <span class="icon">✗</span>
+              Offline during AC emergencies when demand is highest
+            </li>
+          </ul>
+        </div>
+        <div class="problem-visual fade-up">
+          <div class="terminal-card">
+            <div class="terminal-header">
+              <span class="terminal-dot" style="background:#ff5f57"></span>
+              <span class="terminal-dot" style="background:#ffbd2e"></span>
+              <span class="terminal-dot" style="background:#28c840"></span>
+              <span class="terminal-title">SURGE_DASHBOARD — lead_stream.log</span>
+            </div>
+            <div class="terminal-body">
+              <span class="t-line t-comment">// Real-time feed — past 4 hours</span>
+              <span class="t-line">&nbsp;</span>
+              <span class="t-line"><span class="t-amber">14:32</span> <span class="t-key">NEW_LEAD</span> <span class="t-val">"AC repair — Frisco TX"</span></span>
+              <span class="t-line" style="padding-left:16px;color:var(--text-muted)">→ intent_score: <span style="color:#81C784">97</span> · routed to CRM</span>
+              <span class="t-line">&nbsp;</span>
+              <span class="t-line"><span class="t-amber">14:28</span> <span class="t-key">BOOKED</span> <span class="t-val">"Mini-split install — Plano"</span></span>
+              <span class="t-line" style="padding-left:16px;color:var(--text-muted)">→ follow-up #2 sent · <span style="color:#81C784">confirmed</span></span>
+              <span class="t-line">&nbsp;</span>
+              <span class="t-line"><span class="t-amber">13:55</span> <span class="t-key">NEW_LEAD</span> <span class="t-val">"Heater check — Allen TX"</span></span>
+              <span class="t-line" style="padding-left:16px;color:var(--text-muted)">→ intent_score: <span style="color:#FFB74D">81</span> · nurture seq. started</span>
+              <span class="t-line">&nbsp;</span>
+              <span class="t-line"><span class="t-amber">13:41</span> <span class="t-key">NEW_LEAD</span> <span class="t-val">"Duct cleaning — McKinney"</span></span>
+              <span class="t-line" style="padding-left:16px;color:var(--text-muted)">→ intent_score: <span style="color:#81C784">92</span> · routed to CRM</span>
+              <span class="t-line">&nbsp;</span>
+              <span class="t-line"><span class="t-amber">12:18</span> <span class="t-key">BOOKED</span> <span class="t-val">"Full system replace"</span></span>
+              <span class="t-line" style="padding-left:16px;color:var(--text-muted)">→ <span style="color:#81C784">$8,400 ticket · closed</span></span>
+              <span class="t-line">&nbsp;</span>
+              <span class="t-line t-comment">// 12 new leads captured while you were reading this</span>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:16px 20px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);font-family:var(--mono);font-size:12px;color:var(--amber);">
+            ▲ 340% more leads vs. manual outreach
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="container">
+      <div style="text-align:center;max-width:640px;margin:0 auto 0">
+        <div class="section-tag fade-up" style="justify-content:center">How It Works</div>
+        <h2 class="section-title fade-up">THREE STEPS.<br/><span class="accent">ZERO GUESSWORK.</span></h2>
+        <p style="font-family:var(--mono);font-size:13px;color:var(--text-secondary);line-height:1.8;margin-top:16px" class="fade-up">We handle the entire acquisition pipeline. You handle the wrenches.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card fade-up">
+          <span class="step-number" aria-hidden="true">01</span>
+          <div class="step-icon">⚙</div>
+          <div class="step-title">CONNECT</div>
+          <p class="step-body">We integrate with your service area, existing CRM, and calendar in under 15 minutes. No IT team required. No code to write.</p>
+        </div>
+        <div class="step-card fade-up" style="transition-delay:0.1s">
+          <span class="step-number" aria-hidden="true">02</span>
+          <div class="step-icon">⚡</div>
+          <div class="step-title">CAPTURE</div>
+          <p class="step-body">Our AI runs 24/7 — Google Ads, Meta, LSA, and SEO — targeting homeowners actively searching for HVAC services in your zip codes.</p>
+        </div>
+        <div class="step-card fade-up" style="transition-delay:0.2s">
+          <span class="step-number" aria-hidden="true">03</span>
+          <div class="step-icon">📋</div>
+          <div class="step-title">CONVERT</div>
+          <p class="step-body">Qualified leads land in your CRM instantly. Automated SMS and email follow-up sequences run until they book — or opt out.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="container">
+      <div class="features-header">
+        <div>
+          <div class="section-tag fade-up">Features</div>
+          <h2 class="section-title fade-up">BUILT FOR<br/><span class="accent">HVAC.</span><br/>NOTHING ELSE.</h2>
+        </div>
+        <div>
+          <p style="font-family:var(--mono);font-size:13px;color:var(--text-secondary);line-height:1.8;max-width:400px" class="fade-up">
+            Generic marketing tools weren't built for your industry. SURGE speaks HVAC — seasonal demand spikes, emergency intent signals, maintenance windows.
+          </p>
+        </div>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card fade-up">
+          <span class="feature-icon">🎯</span>
+          <div class="feature-title">AI Intent Scoring</div>
+          <p class="feature-desc">Every lead scored 0–100 for purchase intent. Filters out tire-kickers before they waste your time.</p>
+        </div>
+        <div class="feature-card fade-up" style="transition-delay:0.05s">
+          <span class="feature-icon">📍</span>
+          <div class="feature-title">Geo-Targeted Campaigns</div>
+          <p class="feature-desc">Zip-code precision. Serve ads only to homeowners within your actual service radius. Not the whole city.</p>
+        </div>
+        <div class="feature-card fade-up" style="transition-delay:0.1s">
+          <span class="feature-icon">🔁</span>
+          <div class="feature-title">Auto Follow-Up Sequences</div>
+          <p class="feature-desc">SMS, email, and voicemail drops fire automatically at optimized intervals until you get a response.</p>
+        </div>
+        <div class="feature-card fade-up" style="transition-delay:0.15s">
+          <span class="feature-icon">📊</span>
+          <div class="feature-title">Live Performance Dashboard</div>
+          <p class="feature-desc">See every dollar spent, every lead captured, and every job booked in one real-time command center.</p>
+        </div>
+        <div class="feature-card fade-up" style="transition-delay:0.2s">
+          <span class="feature-icon">🌡</span>
+          <div class="feature-title">Seasonal Demand Surge Mode</div>
+          <p class="feature-desc">Our AI auto-scales budgets during heat waves and cold snaps. Peak demand = maximum lead capture.</p>
+        </div>
+        <div class="feature-card fade-up" style="transition-delay:0.25s">
+          <span class="feature-icon">🔗</span>
+          <div class="feature-title">CRM &amp; Scheduling Sync</div>
+          <p class="feature-desc">Native integrations with ServiceTitan, Housecall Pro, FieldEdge, and 40+ others. Leads flow straight in.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials">
+    <div class="container">
+      <div class="section-tag fade-up" style="justify-content:center">Results</div>
+      <h2 class="section-title fade-up" style="text-align:center">HVAC OWNERS<br/><span class="accent">DON'T LIE.</span></h2>
+      <div class="testimonials-grid">
+        <div class="testi-card fade-up">
+          <div class="testi-stars">
+            <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+          </div>
+          <p class="testi-text">"We were spending $4,200/month with an agency and getting maybe 15 leads. First month with SURGE we got 87. I almost fell out of my chair."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">MR</div>
+            <div>
+              <div class="testi-name">Mike R.</div>
+              <div class="testi-role">Owner — Polar Air HVAC · Tampa, FL</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card fade-up" style="transition-delay:0.1s">
+          <div class="testi-stars">
+            <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+          </div>
+          <p class="testi-text">"The intent scoring is insane. My guys only call leads that actually pick up and want service. We stopped wasting hours on dead numbers."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">DT</div>
+            <div>
+              <div class="testi-name">Derek T.</div>
+              <div class="testi-role">Owner — Comfort Pro HVAC · Dallas, TX</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card fade-up" style="transition-delay:0.2s">
+          <div class="testi-stars">
+            <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+          </div>
+          <p class="testi-text">"Surge Mode during the July heatwave? 43 emergency AC leads in 48 hours. Booked out two weeks straight. Best month in company history."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">JL</div>
+            <div>
+              <div class="testi-name">Jessica L.</div>
+              <div class="testi-role">Operations — Apex Cooling · Phoenix, AZ</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="container">
+      <div class="section-tag fade-up">Pricing</div>
+      <h2 class="section-title fade-up">NO CONTRACTS.<br/>NO <span class="accent">BULLSHIT.</span></h2>
+      <p style="font-family:var(--mono);font-size:13px;color:var(--text-secondary);line-height:1.8;max-width:480px;margin-bottom:0" class="fade-up">
+        Cancel anytime. Volume pricing for multi-location operators available on request.
+      </p>
+      <div class="pricing-grid">
+        <div class="price-card fade-up">
+          <div class="price-tier">Starter</div>
+          <div class="price-number"><sup>$</sup>497</div>
+          <div class="price-period">/ MONTH</div>
+          <div class="price-divider"></div>
+          <ul class="price-features">
+            <li class="price-feature"><span class="check">▸</span> Up to 40 leads/month</li>
+            <li class="price-feature"><span class="check">▸</span> 1 service area (zip-level)</li>
+            <li class="price-feature"><span class="check">▸</span> Google LSA integration</li>
+            <li class="price-feature"><span class="check">▸</span> CRM sync (1 platform)</li>
+            <li class="price-feature"><span class="check">▸</span> Basic follow-up sequences</li>
+            <li class="price-feature disabled"><span class="check">—</span> AI intent scoring</li>
+            <li class="price-feature disabled"><span class="check">—</span> Surge Mode</li>
+          </ul>
+          <a href="#cta" class="btn-ghost" style="width:100%;justify-content:center">Get Started</a>
+        </div>
+        <div class="price-card featured fade-up" style="transition-delay:0.1s">
+          <div class="price-tier">Pro</div>
+          <div class="price-number"><sup>$</sup>897</div>
+          <div class="price-period">/ MONTH</div>
+          <div class="price-divider"></div>
+          <ul class="price-features">
+            <li class="price-feature"><span class="check">▸</span> Up to 120 leads/month</li>
+            <li class="price-feature"><span class="check">▸</span> 3 service areas</li>
+            <li class="price-feature"><span class="check">▸</span> Google + Meta + LSA</li>
+            <li class="price-feature"><span class="check">▸</span> CRM sync (all platforms)</li>
+            <li class="price-feature"><span class="check">▸</span> AI intent scoring</li>
+            <li class="price-feature"><span class="check">▸</span> Surge Mode (auto-scale)</li>
+            <li class="price-feature disabled"><span class="check">—</span> Dedicated account manager</li>
+          </ul>
+          <a href="#cta" class="btn-primary" style="width:100%;justify-content:center">Get Started</a>
+        </div>
+        <div class="price-card fade-up" style="transition-delay:0.2s">
+          <div class="price-tier">Enterprise</div>
+          <div class="price-number" style="font-size:clamp(40px,4vw,56px);display:flex;align-items:center;gap:8px">
+            <span style="font-family:var(--mono);font-size:18px;color:var(--text-secondary)">Custom</span>
+          </div>
+          <div class="price-period">CONTACT US</div>
+          <div class="price-divider"></div>
+          <ul class="price-features">
+            <li class="price-feature"><span class="check">▸</span> Unlimited leads</li>
+            <li class="price-feature"><span class="check">▸</span> Unlimited service areas</li>
+            <li class="price-feature"><span class="check">▸</span> Full multi-channel stack</li>
+            <li class="price-feature"><span class="check">▸</span> CRM sync (all platforms)</li>
+            <li class="price-feature"><span class="check">▸</span> AI intent scoring + API access</li>
+            <li class="price-feature"><span class="check">▸</span> Surge Mode + priority routing</li>
+            <li class="price-feature"><span class="check">▸</span> Dedicated account manager</li>
+          </ul>
+          <a href="#cta" class="btn-ghost" style="width:100%;justify-content:center">Talk to Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta">
+    <div class="cta-bg-glow"></div>
+    <div class="container">
+      <div class="cta-inner">
+        <div class="section-tag fade-up" style="justify-content:center">Ready?</div>
+        <h2 class="cta-title fade-up">START YOUR<br/><span class="accent">LEAD ENGINE</span><br/>TODAY.</h2>
+        <p class="cta-sub fade-up">
+          Setup takes 15 minutes. First leads arrive within 48 hours.<br/>
+          No agency fees. No shared leads. Yours exclusively.
+        </p>
+        <div class="cta-actions fade-up">
+          <a href="#" class="btn-primary-lg">
+            Book a Demo Call
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </a>
+          <a href="#" class="btn-ghost" style="padding:18px 36px;font-size:13px">View Case Studies</a>
+        </div>
+        <div class="trust-line fade-up">
+          <span class="trust-item">No contracts</span>
+          <span class="trust-item">Cancel anytime</span>
+          <span class="trust-item">Setup in 15 min</span>
+          <span class="trust-item">First leads in 48h</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo">SURGE<span>.</span></div>
+          <p>HVAC lead automation built for contractors who are serious about growth. Not an agency. A machine.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul class="footer-links">
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Integrations</a></li>
+            <li><a href="#">Case Studies</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">TCPA Compliance</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2026 SURGE TECHNOLOGIES INC. ALL RIGHTS RESERVED.</div>
+        <div class="footer-copy">BUILT FOR THE TRADES.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll fade-up
+    const fadeEls = document.querySelectorAll('.fade-up');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(el => {
+        if (el.isIntersecting) {
+          el.target.classList.add('visible');
+          observer.unobserve(el.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    fadeEls.forEach(el => observer.observe(el));
+
+    // Counter animation
+    function animateCounter(el) {
+      const target = parseInt(el.dataset.target);
+      const duration = 1800;
+      const start = performance.now();
+      function step(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.floor(ease * target).toLocaleString();
+        if (progress < 1) requestAnimationFrame(step);
+        else el.textContent = target.toLocaleString();
+      }
+      requestAnimationFrame(step);
+    }
+
+    const statsBar = document.querySelector('.stats-bar');
+    const statsObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.counter').forEach(animateCounter);
+        statsObserver.unobserve(statsBar);
+      }
+    }, { threshold: 0.4 });
+    statsObserver.observe(statsBar);
+
+    // Nav scroll effect
+    const navEl = document.querySelector('nav');
+    window.addEventListener('scroll', () => {
+      navEl.style.borderBottomColor = window.scrollY > 50
+        ? 'rgba(249,115,22,0.15)'
+        : 'rgba(255,255,255,0.07)';
+    }, { passive: true });
+  </script>
+</body>
+</html>

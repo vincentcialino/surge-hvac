@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node screenshot.mjs http://localhost:3000 v2)",
+      "Bash(node screenshot.mjs http://localhost:3000 v3)",
+      "Bash(node screenshot.mjs http://localhost:3000/dashboard.html dash1)",
+      "Bash(node -e ' *)",
+      "Bash(curl *)"
+    ]
+  }
+}

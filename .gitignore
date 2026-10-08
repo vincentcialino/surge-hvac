@@ -1,0 +1,5 @@
+node_modules/
+.env
+surge.db
+temporary screenshots/
+package-lock.json
