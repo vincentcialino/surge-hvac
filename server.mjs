@@ -73,10 +73,10 @@ const { count } = await q1('SELECT COUNT(*)::int as count FROM campaigns');
 if (count === 0) {
   await pool.query(`
     INSERT INTO campaigns (name, platform, status, budget) VALUES
-    ('Google LSA — Dallas Metro',    'Google LSA',    'active', 1200),
-    ('Google Search — HVAC Repair',  'Google Search', 'active', 800),
-    ('Meta — Homeowner Targeting',   'Meta Ads',      'active', 600),
-    ('Retargeting — Site Visitors',  'Retargeting',   'paused', 300)
+    ('', 'Google LSA',    'paused', 0),
+    ('', 'Google Search', 'paused', 0),
+    ('', 'Meta Ads',      'paused', 0),
+    ('', 'Retargeting',   'paused', 0)
   `);
 }
 
@@ -211,9 +211,10 @@ app.get('/api/campaigns', async (req, res) => {
 });
 
 app.patch('/api/campaigns/:id', async (req, res) => {
-  const { status, budget, spend } = req.body;
+  const { status, budget, spend, name } = req.body;
   const id = parseInt(req.params.id);
-  if (status) await pool.query('UPDATE campaigns SET status = $1 WHERE id = $2', [status, id]);
+  if (name  !== undefined) await pool.query('UPDATE campaigns SET name   = $1 WHERE id = $2', [name,   id]);
+  if (status !== undefined) await pool.query('UPDATE campaigns SET status = $1 WHERE id = $2', [status, id]);
   if (budget !== undefined) await pool.query('UPDATE campaigns SET budget = $1 WHERE id = $2', [budget, id]);
   if (spend  !== undefined) await pool.query('UPDATE campaigns SET spend  = $1 WHERE id = $2', [spend,  id]);
   res.json(await q1('SELECT * FROM campaigns WHERE id = $1', [id]));

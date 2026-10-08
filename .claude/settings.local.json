@@ -11,7 +11,8 @@
       "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" push)",
       "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" commit -m \"replace all hardcoded dashboard data with live API data\")",
       "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" commit -m \"fix leads badge showing wrong count\")",
-      "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" commit -m \"live sidebar profile from settings API\")"
+      "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" commit -m \"live sidebar profile from settings API\")",
+      "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" commit -m \"campaigns empty until named, inline name editing\")"
     ]
   }
 }

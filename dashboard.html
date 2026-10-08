@@ -904,42 +904,69 @@ async function deleteLead(id, btn) {
 // ── CAMPAIGNS ─────────────────────────────────────────────────────
 async function renderCampaigns() {
   const camps = await apiFetch('/campaigns') || [];
-  if (!camps.length) {
-    document.getElementById('campaigns-grid').innerHTML = `
-      <div style="grid-column:1/-1;padding:40px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3);letter-spacing:.08em;background:var(--s1);">
-        No campaigns configured yet.
-      </div>`;
-    return;
-  }
   document.getElementById('campaigns-grid').innerHTML = camps.map(c => {
-    const budget = c.budget || 0;
-    const spend = c.spend || 0;
-    const pct = budget > 0 ? Math.min(100, Math.round(spend/budget*100)) : 0;
+    const budget  = c.budget || 0;
+    const spend   = c.spend  || 0;
+    const pct     = budget > 0 ? Math.min(100, Math.round(spend/budget*100)) : 0;
+    const unnamed = !c.name || c.name.trim() === '';
     return `<div class="camp-card">
       <div class="camp-card-header">
-        <div>
+        <div style="flex:1;min-width:0;">
           <div class="camp-platform">${c.platform||''}</div>
-          <div class="camp-name">${c.name}</div>
+          ${unnamed
+            ? `<input class="form-input" style="margin-top:4px;font-size:15px;font-weight:700;font-family:var(--body);letter-spacing:.02em;"
+                placeholder="Name this campaign..." id="camp-name-${c.id}"
+                onblur="saveCampName(${c.id})" onkeydown="if(event.key==='Enter')this.blur()" />`
+            : `<div class="camp-name" ondblclick="editCampName(${c.id},this)">${c.name}</div>`
+          }
         </div>
-        <div class="camp-toggle" onclick="toggleCamp(${c.id},this)">
+        <div class="camp-toggle" onclick="toggleCamp(${c.id},this)" style="margin-left:16px;">
           <div class="toggle ${c.status==='active'?'on':''}"></div>
-          <span style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;">${(c.status||'').toUpperCase()}</span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;">${(c.status||'paused').toUpperCase()}</span>
         </div>
       </div>
-      <div class="camp-metrics">
-        <div class="camp-metric"><div class="cm-label">Spend</div><div class="cm-value" style="font-size:22px">$${spend.toLocaleString()}</div><div class="cm-sub">of $${budget.toLocaleString()} budget</div></div>
-        <div class="camp-metric"><div class="cm-label">Leads</div><div class="cm-value">${c.leads??0}</div><div class="cm-sub">this month</div></div>
-        <div class="camp-metric"><div class="cm-label">CPL</div><div class="cm-value" style="color:var(--amber);font-size:22px">$${(c.cpl||0).toFixed(2)}</div><div class="cm-sub">cost per lead</div></div>
-        <div class="camp-metric"><div class="cm-label">CTR</div><div class="cm-value" style="font-size:22px">${c.ctr??0}%</div><div class="cm-sub">click-through</div></div>
-      </div>
-      <div class="camp-chart-row">
-        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;margin-bottom:4px;">
-          <span>BUDGET UTILIZED</span><span>${pct}%</span>
-        </div>
-        <div class="camp-progress"><div class="camp-progress-fill" style="width:${pct}%"></div></div>
-      </div>
+      ${unnamed
+        ? `<div style="font-family:var(--mono);font-size:11px;color:var(--text3);padding:16px 0;letter-spacing:.08em;">Enter a name to activate this campaign slot.</div>`
+        : `<div class="camp-metrics">
+            <div class="camp-metric"><div class="cm-label">Spend</div><div class="cm-value" style="font-size:22px">$${spend.toLocaleString()}</div><div class="cm-sub">of $${budget.toLocaleString()} budget</div></div>
+            <div class="camp-metric"><div class="cm-label">Leads</div><div class="cm-value">${c.leads??0}</div><div class="cm-sub">this month</div></div>
+            <div class="camp-metric"><div class="cm-label">CPL</div><div class="cm-value" style="color:var(--amber);font-size:22px">$${(c.cpl||0).toFixed(2)}</div><div class="cm-sub">cost per lead</div></div>
+            <div class="camp-metric"><div class="cm-label">CTR</div><div class="cm-value" style="font-size:22px">${c.ctr??0}%</div><div class="cm-sub">click-through</div></div>
+          </div>
+          <div class="camp-chart-row">
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;margin-bottom:4px;">
+              <span>BUDGET UTILIZED</span><span>${pct}%</span>
+            </div>
+            <div class="camp-progress"><div class="camp-progress-fill" style="width:${pct}%"></div></div>
+          </div>`
+      }
     </div>`;
   }).join('');
+}
+
+async function saveCampName(id) {
+  const inp = document.getElementById('camp-name-'+id);
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) return;
+  await apiFetch('/campaigns/'+id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+  renderCampaigns();
+}
+
+function editCampName(id, el) {
+  const current = el.textContent;
+  const inp = document.createElement('input');
+  inp.className = 'form-input';
+  inp.style.cssText = 'font-size:15px;font-weight:700;font-family:var(--body);letter-spacing:.02em;';
+  inp.value = current;
+  el.replaceWith(inp);
+  inp.focus();
+  inp.onblur = async () => {
+    const name = inp.value.trim() || current;
+    await apiFetch('/campaigns/'+id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+    renderCampaigns();
+  };
+  inp.onkeydown = e => { if(e.key==='Enter') inp.blur(); };
 }
 
 async function toggleCamp(id, el) {
