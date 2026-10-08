@@ -302,7 +302,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
     <div class="sb-section">
       <div class="sb-label">Operations</div>
       <div class="sb-item active" onclick="navigate('dashboard')"><span class="icon">▦</span> Dashboard</div>
-      <div class="sb-item" onclick="navigate('leads')"><span class="icon">◈</span> Leads <span class="sb-badge" id="sb-new-count">8</span></div>
+      <div class="sb-item" onclick="navigate('leads')"><span class="icon">◈</span> Leads <span class="sb-badge" id="sb-new-count" style="display:none">0</span></div>
       <div class="sb-item" onclick="navigate('campaigns')"><span class="icon">◎</span> Campaigns</div>
       <div class="sb-item" onclick="navigate('automation')"><span class="icon">⟳</span> Automation</div>
     </div>
@@ -693,7 +693,7 @@ async function initDashboard() {
 
     // Sidebar badge
     const badge = document.getElementById('sb-new-count');
-    if (badge) badge.textContent = newCount;
+    if (badge) { badge.textContent = newCount; badge.style.display = newCount > 0 ? 'inline' : 'none'; }
   }
 
   // Weekly bar chart
