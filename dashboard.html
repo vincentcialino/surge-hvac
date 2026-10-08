@@ -77,6 +77,25 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .tb-btn:hover{border-color:var(--amber-border);color:var(--amber);}
 .tb-notif{position:absolute;top:5px;right:5px;width:5px;height:5px;background:var(--amber);border-radius:50%;}
 
+/* NOTIFICATIONS */
+.notif-wrap{position:relative;}
+.notif-dropdown{display:none;position:absolute;top:38px;right:0;width:320px;background:var(--s2);border:1px solid var(--border);border-top:2px solid var(--amber);z-index:1000;box-shadow:0 8px 32px rgba(0,0,0,0.6);}
+.notif-dropdown.open{display:block;}
+.notif-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.notif-header-title{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text2);}
+.notif-clear{font-family:var(--mono);font-size:9px;color:var(--text3);cursor:pointer;letter-spacing:.1em;text-transform:uppercase;}
+.notif-clear:hover{color:var(--amber);}
+.notif-list{max-height:360px;overflow-y:auto;}
+.notif-item{padding:12px 16px;border-bottom:1px solid var(--border2);display:flex;gap:10px;align-items:flex-start;transition:background .15s;}
+.notif-item:hover{background:rgba(255,255,255,0.02);}
+.notif-item.unread{border-left:2px solid var(--amber);}
+.notif-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0;margin-top:5px;}
+.notif-dot.read{background:var(--text3);}
+.notif-text{font-family:var(--body);font-size:14px;color:var(--text);line-height:1.4;}
+.notif-time{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:3px;letter-spacing:.06em;}
+.notif-empty{padding:32px 16px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3);letter-spacing:.1em;}
+.notif-count{position:absolute;top:4px;right:4px;background:var(--amber);color:#000;font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 4px;min-width:14px;text-align:center;}
+
 /* PAGES */
 .page{display:none;}
 .page.active{display:block;}
@@ -315,7 +334,18 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
       <span class="topbar-path" id="topbar-path">surge / overview</span>
       <div class="topbar-right">
         <input class="tb-search" placeholder="Search leads, campaigns..." id="global-search" />
-        <div class="tb-btn" title="Notifications">🔔<span class="tb-notif"></span></div>
+        <div class="notif-wrap">
+          <div class="tb-btn" title="Notifications" onclick="toggleNotif()" id="notif-btn">🔔<span class="notif-count" id="notif-count" style="display:none">0</span></div>
+          <div class="notif-dropdown" id="notif-dropdown">
+            <div class="notif-header">
+              <span class="notif-header-title">Notifications</span>
+              <span class="notif-clear" onclick="clearNotifs()">Mark all read</span>
+            </div>
+            <div class="notif-list" id="notif-list">
+              <div class="notif-empty">No notifications yet</div>
+            </div>
+          </div>
+        </div>
         <div class="tb-btn" title="Settings" onclick="navigate('settings')">⚙</div>
       </div>
     </header>
@@ -1130,6 +1160,10 @@ function initWebSocket() {
         // Re-render leads table if on leads page
         if (state.page === 'leads') renderLeadsTable();
 
+        // Add notification
+        const intentLabel = lead.intent >= 90 ? '🔥 HOT' : lead.intent >= 75 ? '⚡' : '•';
+        addNotification(`${intentLabel} New lead: ${lead.name} — ${lead.service} in ${lead.area}`);
+
         // Update sidebar new-lead badge
         apiFetch('/leads/stats').then(stats => {
           if (stats) {
@@ -1141,6 +1175,7 @@ function initWebSocket() {
 
       if (msg.type === 'lead_updated' && msg.data) {
         if (state.page === 'leads') renderLeadsTable();
+        addNotification(`Status updated: ${msg.data.name} → ${msg.data.status.toUpperCase()}`);
       }
     });
 
@@ -1156,6 +1191,73 @@ function initWebSocket() {
 
   connect();
 }
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────
+let notifications = [];
+let unreadCount = 0;
+
+function addNotification(text, type = 'lead') {
+  const n = { id: Date.now(), text, type, time: new Date(), read: false };
+  notifications.unshift(n);
+  if (notifications.length > 20) notifications.pop();
+  unreadCount++;
+  renderNotifList();
+  updateNotifBadge();
+}
+
+function renderNotifList() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  if (notifications.length === 0) {
+    list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+    return;
+  }
+  list.innerHTML = notifications.map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}">
+      <div class="notif-dot ${n.read ? 'read' : ''}"></div>
+      <div>
+        <div class="notif-text">${n.text}</div>
+        <div class="notif-time">${timeAgo(n.time.toISOString())}</div>
+      </div>
+    </div>`).join('');
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notif-count');
+  if (!badge) return;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function toggleNotif() {
+  const dd = document.getElementById('notif-dropdown');
+  dd.classList.toggle('open');
+  if (dd.classList.contains('open')) {
+    notifications.forEach(n => n.read = true);
+    unreadCount = 0;
+    updateNotifBadge();
+    renderNotifList();
+  }
+}
+
+function clearNotifs() {
+  notifications = [];
+  unreadCount = 0;
+  updateNotifBadge();
+  renderNotifList();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.querySelector('.notif-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('notif-dropdown')?.classList.remove('open');
+  }
+});
 
 // ── INIT ──────────────────────────────────────────────────────────
 Chart.defaults.color = '#8A8480';

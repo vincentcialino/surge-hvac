@@ -5,7 +5,10 @@
       "Bash(node screenshot.mjs http://localhost:3000 v3)",
       "Bash(node screenshot.mjs http://localhost:3000/dashboard.html dash1)",
       "Bash(node -e ' *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" add .)",
+      "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" commit -m \"add notifications dropdown\")",
+      "Bash(git -C \"C:\\\\Users\\\\vinci\\\\OneDrive\\\\Desktop\\\\Website_Building_1\" push)"
     ]
   }
 }
