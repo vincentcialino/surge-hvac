@@ -577,7 +577,7 @@ const INTEGRATIONS = [
 let state = { page:'dashboard', leadsFilter:'all', chartInstances:{} };
 
 // ── API HELPERS ───────────────────────────────────────────────────
-const API = 'http://localhost:3000/api';
+const API = '/api';
 
 async function apiFetch(path, opts={}) {
   try {
@@ -1097,7 +1097,8 @@ function initWebSocket() {
   let ws;
   function connect() {
     try {
-      ws = new WebSocket('ws://localhost:3000');
+      const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${wsProto}//${location.host}`);
     } catch(e) {
       console.warn('WebSocket unavailable:', e);
       return;
