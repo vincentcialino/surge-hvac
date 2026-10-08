@@ -36,6 +36,10 @@ async function q1(sql, params = []) {
 
 // Create tables
 await pool.query(`
+  CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT DEFAULT ''
+  );
   CREATE TABLE IF NOT EXISTS leads (
     id         SERIAL PRIMARY KEY,
     name       TEXT NOT NULL,
@@ -236,6 +240,35 @@ function estimateValue(service) {
 }
 
 // ── ROUTES ────────────────────────────────────────────────────────
+// ── SETTINGS API ─────────────────────────────────────────────────
+
+app.get('/api/settings', async (req, res) => {
+  const rows = await q('SELECT key, value FROM settings');
+  const settings = Object.fromEntries(rows.map(r => [r.key, r.value]));
+  // Return defaults if not set yet
+  res.json({
+    company_name: settings.company_name || '',
+    owner_name:   settings.owner_name   || '',
+    phone:        settings.phone        || '',
+    email:        settings.email        || '',
+    timezone:     settings.timezone     || 'America/Chicago (CST)',
+    plan:         settings.plan         || 'Pro',
+  });
+});
+
+app.post('/api/settings', async (req, res) => {
+  const fields = ['company_name','owner_name','phone','email','timezone','plan'];
+  for (const key of fields) {
+    if (req.body[key] !== undefined) {
+      await pool.query(`
+        INSERT INTO settings (key, value) VALUES ($1, $2)
+        ON CONFLICT (key) DO UPDATE SET value = $2
+      `, [key, req.body[key]]);
+    }
+  }
+  res.json({ ok: true });
+});
+
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (_, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/intake',    (_, res) => res.sendFile(path.join(__dirname, 'intake.html')));

@@ -316,10 +316,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
     </div>
     <div class="sb-status">
       <div class="sb-user">
-        <div class="sb-avatar">JD</div>
+        <div class="sb-avatar" id="sb-avatar">--</div>
         <div>
-          <div class="sb-user-name">Jake Donovan</div>
-          <div class="sb-user-role">Owner · Pro Plan</div>
+          <div class="sb-user-name" id="sb-user-name">Loading...</div>
+          <div class="sb-user-role" id="sb-user-role">Owner</div>
         </div>
       </div>
       <div class="sb-pulse">LEAD ENGINE ACTIVE</div>
@@ -516,14 +516,22 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
           <div>
             <div class="settings-card" style="margin-bottom:24px;">
               <div class="settings-title">BUSINESS PROFILE</div>
-              <div class="form-group"><label class="form-label">Company Name</label><input class="form-input" value="Comfort Pro HVAC" /></div>
-              <div class="form-group"><label class="form-label">Owner Name</label><input class="form-input" value="Jake Donovan" /></div>
-              <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" value="(214) 555-0192" /></div>
-              <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="jake@comfortprohvac.com" /></div>
+              <div class="form-group"><label class="form-label">Company Name</label><input class="form-input" id="set-company" placeholder="Your company name" /></div>
+              <div class="form-group"><label class="form-label">Owner Name</label><input class="form-input" id="set-owner" placeholder="Your name" /></div>
+              <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="set-phone" placeholder="(555) 000-0000" /></div>
+              <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="set-email" placeholder="you@company.com" /></div>
               <div class="form-group"><label class="form-label">Time Zone</label>
-                <select class="form-select"><option>America/Chicago (CST)</option><option>America/New_York (EST)</option><option>America/Phoenix (MST)</option><option>America/Los_Angeles (PST)</option></select>
+                <select class="form-select" id="set-timezone">
+                  <option>America/Chicago (CST)</option>
+                  <option>America/New_York (EST)</option>
+                  <option>America/Phoenix (MST)</option>
+                  <option>America/Los_Angeles (PST)</option>
+                </select>
               </div>
-              <button class="btn btn-primary" style="margin-top:8px;">Save Changes</button>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+                <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+                <span id="settings-saved" style="font-family:var(--mono);font-size:10px;color:var(--green);display:none;letter-spacing:.1em;">✓ SAVED</span>
+              </div>
             </div>
             <div class="settings-card">
               <div class="settings-title">NOTIFICATIONS</div>
@@ -1099,9 +1107,27 @@ function setDateRange(range, el) {
 
 // ── SETTINGS ─────────────────────────────────────────────────────
 let zips = [...ZIPS];
-function renderSettings() {
+
+async function renderSettings() {
+  // Load real settings from API
+  const s = await apiFetch('/settings') || {};
+  if (s.company_name !== undefined) {
+    const f = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+    f('set-company', s.company_name);
+    f('set-owner',   s.owner_name);
+    f('set-phone',   s.phone);
+    f('set-email',   s.email);
+    const tz = document.getElementById('set-timezone');
+    if (tz && s.timezone) {
+      [...tz.options].forEach(o => { if(o.value === s.timezone || o.text === s.timezone) o.selected = true; });
+    }
+  }
+
+  // Zip list
   const zipList = document.getElementById('zip-list');
   zipList.innerHTML = zips.map(z=>`<div class="zip-tag">${z}<span class="zip-remove" onclick="removeZip('${z}')">✕</span></div>`).join('');
+
+  // Integrations
   document.getElementById('integrations-list').innerHTML = INTEGRATIONS.map(i=>`
     <div class="integration-item">
       <div style="width:28px;height:28px;background:var(--s3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;">⚡</div>
@@ -1109,6 +1135,22 @@ function renderSettings() {
       <div class="int-status ${i.connected?'connected':'disconnected'}">${i.connected?'● CONNECTED':'○ NOT CONNECTED'}</div>
       <button class="btn btn-sm ${i.connected?'btn-danger':'btn-ghost'}" onclick="toggleInt(this,'${i.name}')">${i.connected?'Disconnect':'Connect'}</button>
     </div>`).join('');
+}
+
+async function saveSettings() {
+  const body = {
+    company_name: document.getElementById('set-company')?.value || '',
+    owner_name:   document.getElementById('set-owner')?.value   || '',
+    phone:        document.getElementById('set-phone')?.value   || '',
+    email:        document.getElementById('set-email')?.value   || '',
+    timezone:     document.getElementById('set-timezone')?.value || '',
+  };
+  await apiFetch('/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  // Update sidebar immediately
+  updateSidebarProfile(body);
+  // Show saved confirmation
+  const saved = document.getElementById('settings-saved');
+  if (saved) { saved.style.display = 'inline'; setTimeout(() => saved.style.display = 'none', 2000); }
 }
 
 function addZip() {
@@ -1259,6 +1301,24 @@ document.addEventListener('click', e => {
   }
 });
 
+// ── SIDEBAR PROFILE ───────────────────────────────────────────────
+function updateSidebarProfile(s) {
+  const name    = s.owner_name   || s.company_name || 'Your Name';
+  const company = s.company_name || '';
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || '--';
+  const avatarEl = document.getElementById('sb-avatar');
+  const nameEl   = document.getElementById('sb-user-name');
+  const roleEl   = document.getElementById('sb-user-role');
+  if (avatarEl) avatarEl.textContent = initials;
+  if (nameEl)   nameEl.textContent   = name;
+  if (roleEl)   roleEl.textContent   = company ? 'Owner · ' + company : 'Owner';
+}
+
+async function loadSidebarProfile() {
+  const s = await apiFetch('/settings');
+  if (s) updateSidebarProfile(s);
+}
+
 // ── INIT ──────────────────────────────────────────────────────────
 Chart.defaults.color = '#8A8480';
 
@@ -1294,6 +1354,7 @@ setInterval(async () => {
 
 initDashboard();
 initWebSocket();
+loadSidebarProfile();
 </script>
 </body>
 </html>
